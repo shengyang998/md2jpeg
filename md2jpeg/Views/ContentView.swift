@@ -7,13 +7,14 @@ struct ContentView: View {
     @State private var webViewRef: WKWebView?
     @State private var renderedHTML: String = ""
     @State private var isPreviewSheetPresented = false
-    @State private var selectedPreviewDetent: PresentationDetent = .height(72)
+    @State private var selectedPreviewDetent: PresentationDetent = .height(Self.collapsedPreviewBaseHeight)
     @State private var isClearConfirmationPresented = false
 
     private let renderer = MarkdownHTMLRenderer()
     private let exportService = ImageExportService()
     private let photoLibrarySaver = PhotoLibrarySaver()
-    private let collapsedPreviewDetent: PresentationDetent = .height(72)
+    private static let collapsedPreviewBaseHeight: CGFloat = 72
+    private static let editorInsetExtraPadding: CGFloat = 16
 
     var body: some View {
         NavigationStack {
@@ -43,7 +44,7 @@ struct ContentView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .padding()
-            .navigationTitle("md2jpeg")
+            .navigationTitle("Markdown-IMG")
             .alert("Export Error", isPresented: .constant(appState.exportErrorMessage != nil), actions: {
                 Button("OK") { appState.exportErrorMessage = nil }
             }, message: {
@@ -148,7 +149,7 @@ struct ContentView: View {
         }
         .background(.regularMaterial)
         .onTapGesture { dismissKeyboard() }
-        .ignoresSafeArea(.container, edges: [.top, .bottom])
+        .ignoresSafeArea(.container, edges: .top)
         .confirmationDialog(
             "Clear markdown?",
             isPresented: $isClearConfirmationPresented,
@@ -163,8 +164,24 @@ struct ContentView: View {
         }
     }
 
+    private var safeAreaBottomInset: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .safeAreaInsets.bottom ?? 0
+    }
+
+    private var collapsedPreviewHeight: CGFloat {
+        Self.collapsedPreviewBaseHeight + safeAreaBottomInset
+    }
+
+    private var collapsedPreviewDetent: PresentationDetent {
+        .height(collapsedPreviewHeight)
+    }
+
     private var editorBottomInset: CGFloat {
-        selectedPreviewDetent == .large ? 0 : 88
+        selectedPreviewDetent == .large ? 0 : collapsedPreviewHeight + Self.editorInsetExtraPadding
     }
 
     private func refreshRenderedHTML() {
