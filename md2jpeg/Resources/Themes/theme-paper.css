@@ -1,0 +1,67 @@
+body {
+  font-family: "Georgia", "Times New Roman", serif;
+  color: #2f2a24;
+  background: #f8f4ea;
+  margin: 0;
+  padding: 28px;
+  line-height: 1.7;
+}
+
+h1, h2, h3, h4 {
+  letter-spacing: 0.01em;
+  margin-top: 1.25em;
+  margin-bottom: 0.55em;
+}
+
+a {
+  color: #725134;
+}
+
+pre, code {
+  font-family: "SF Mono", Menlo, monospace;
+  background: #ece5d8;
+}
+
+pre {
+  padding: 12px;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 14px 0;
+}
+
+th, td {
+  border: 1px solid #d2c5b0;
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f2eadc;
+}
+
+.mermaid-container {
+  margin: 14px 0;
+}
+
+.mermaid-svg {
+  overflow-x: auto;
+}
+
+.mermaid-error {
+  color: #8b2c19;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.mermaid-source-fallback {
+  padding: 12px;
+  border-radius: 8px;
+  background: #ece5d8;
+  font-family: "SF Mono", Menlo, monospace;
+}
