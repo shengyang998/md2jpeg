@@ -72,6 +72,10 @@ xcodebuild test -project md2jpeg.xcodeproj -scheme md2jpeg -destination 'platfor
 
 Unit tests cover Markdown parsing, export limits, image encoding, tiling logic, theme presets, and drawer behavior. See [`docs/QA_CHECKLIST.md`](docs/QA_CHECKLIST.md) for manual testing scenarios.
 
+## Privacy Policy
+
+See [`PRIVACY_POLICY.md`](PRIVACY_POLICY.md).
+
 ## License
 
 MIT
