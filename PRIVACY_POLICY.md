@@ -64,4 +64,4 @@ We may update this Privacy Policy from time to time. Any updates will be posted 
 If you have any questions about this Privacy Policy, please contact the maintainer via the project repository:  
 如果你对本隐私政策有任何问题，可通过项目仓库联系维护者：
 
-`https://github.com/soleilyu/md2jpeg`
+`https://github.com/shengyang998/md2jpeg`
