@@ -9,6 +9,7 @@ struct ContentView: View {
     @State private var isPreviewSheetPresented = false
     @State private var selectedPreviewDetent: PresentationDetent = .height(Self.collapsedPreviewBaseHeight)
     @State private var isClearConfirmationPresented = false
+    @State private var lastClearDialogDismissedAt: Date?
 
     private let renderer = MarkdownHTMLRenderer()
     private let exportService = ImageExportService()
@@ -85,6 +86,16 @@ struct ContentView: View {
             .buttonStyle(.bordered)
 
             Button("Clear") {
+                print("[ClearDialog] Clear tapped. currentlyPresented=\(isClearConfirmationPresented)")
+                if let dismissedAt = lastClearDialogDismissedAt,
+                   Date().timeIntervalSince(dismissedAt) < 0.4 {
+                    print("[ClearDialog] Ignoring tap during dismiss cooldown.")
+                    return
+                }
+                guard !isClearConfirmationPresented else {
+                    print("[ClearDialog] Ignoring duplicate present request.")
+                    return
+                }
                 isClearConfirmationPresented = true
             }
             .buttonStyle(.bordered)
@@ -150,15 +161,26 @@ struct ContentView: View {
         .background(.regularMaterial)
         .onTapGesture { dismissKeyboard() }
         .ignoresSafeArea(.container, edges: .top)
+        .onChange(of: isClearConfirmationPresented) { isPresented in
+            print("[ClearDialog] isPresented -> \(isPresented)")
+            if !isPresented {
+                lastClearDialogDismissedAt = Date()
+            }
+        }
         .confirmationDialog(
             "Clear markdown?",
             isPresented: $isClearConfirmationPresented,
             titleVisibility: .visible
         ) {
             Button("Clear All", role: .destructive) {
+                print("[ClearDialog] Confirmed clear action.")
                 appState.markdownText = ""
+                isClearConfirmationPresented = false
             }
-            Button("Cancel", role: .cancel) {}
+            Button("Cancel", role: .cancel) {
+                print("[ClearDialog] Cancel tapped.")
+                isClearConfirmationPresented = false
+            }
         } message: {
             Text("This will remove all current markdown content.")
         }
