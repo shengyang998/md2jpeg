@@ -10,7 +10,7 @@ final class AppState: ObservableObject {
     }
 
     private static let defaultMarkdownText = """
-    # md2jpeg
+    # Markdown to Image
 
     Paste your markdown here, pick a theme, and export one long image.
 
