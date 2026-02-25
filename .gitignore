@@ -3,3 +3,4 @@
 # Xcode user-local workspace state
 *.xcuserstate
 xcuserdata/
+scripts/.tmp/

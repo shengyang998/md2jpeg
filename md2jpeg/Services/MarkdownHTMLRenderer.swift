@@ -286,15 +286,15 @@ struct MarkdownHTMLRenderer {
         switch theme {
         case .classic:
             return """
-            {"theme":"default","startOnLoad":false,"securityLevel":"strict","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, \\"Segoe UI\\", sans-serif","primaryColor":"#f6f8fa","primaryTextColor":"#111111","primaryBorderColor":"#d0d7de","lineColor":"#57606a","secondaryColor":"#ffffff","tertiaryColor":"#eef2f6","background":"#ffffff"}}
+            {"theme":"base","startOnLoad":false,"securityLevel":"strict","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, \\"Segoe UI\\", sans-serif","fontSize":"14px","primaryColor":"#eef2ff","primaryTextColor":"#1e293b","primaryBorderColor":"#a5b4fc","lineColor":"#6366f1","secondaryColor":"#f1f5f9","tertiaryColor":"#e0e7ff","background":"#ffffff","mainBkg":"#eef2ff","textColor":"#1e293b","noteBkgColor":"#e0e7ff","noteTextColor":"#3730a3","noteBorderColor":"#a5b4fc","cScale0":"#e0e7ff","cScaleLabel0":"#312e81"}}
             """
         case .paper:
             return """
-            {"theme":"neutral","startOnLoad":false,"securityLevel":"strict","themeVariables":{"fontFamily":"Georgia, \\"Times New Roman\\", serif","primaryColor":"#f2eadc","primaryTextColor":"#2f2a24","primaryBorderColor":"#d2c5b0","lineColor":"#725134","secondaryColor":"#f8f4ea","tertiaryColor":"#ece5d8","background":"#f8f4ea"}}
+            {"theme":"base","startOnLoad":false,"securityLevel":"strict","themeVariables":{"fontFamily":"Georgia, \\"Times New Roman\\", serif","fontSize":"14px","primaryColor":"#f5ede2","primaryTextColor":"#1c1917","primaryBorderColor":"#d6b98e","lineColor":"#92400e","secondaryColor":"#faf7f2","tertiaryColor":"#ece0cf","background":"#faf7f2","mainBkg":"#f5ede2","textColor":"#1c1917","noteBkgColor":"#f5ede2","noteTextColor":"#78350f","noteBorderColor":"#d6b98e","cScale0":"#ede0cc","cScaleLabel0":"#451a03"}}
             """
         case .dark:
             return """
-            {"theme":"dark","startOnLoad":false,"securityLevel":"strict","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, \\"Segoe UI\\", sans-serif","primaryColor":"#161b22","primaryTextColor":"#e6edf3","primaryBorderColor":"#30363d","lineColor":"#58a6ff","secondaryColor":"#0d1117","tertiaryColor":"#111827","background":"#0d1117"}}
+            {"theme":"base","startOnLoad":false,"securityLevel":"strict","themeVariables":{"fontFamily":"-apple-system, BlinkMacSystemFont, \\"Segoe UI\\", sans-serif","fontSize":"14px","darkMode":true,"primaryColor":"#1e293b","primaryTextColor":"#e2e8f0","primaryBorderColor":"#475569","lineColor":"#60a5fa","secondaryColor":"#0f172a","tertiaryColor":"#1e293b","background":"#0f172a","mainBkg":"#1e293b","textColor":"#e2e8f0","noteBkgColor":"#1e293b","noteTextColor":"#94a3b8","noteBorderColor":"#475569","cScale0":"#243352","cScaleLabel0":"#ffffff"}}
             """
         }
     }

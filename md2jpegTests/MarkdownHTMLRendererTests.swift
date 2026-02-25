@@ -152,16 +152,27 @@ final class MarkdownHTMLRendererTests: XCTestCase {
         let renderer = MarkdownHTMLRenderer()
         let html = renderer.render(markdown: "```mermaid\ngraph TD\nA-->B\n```", theme: .dark)
 
-        XCTAssertTrue(html.contains("\"theme\":\"dark\""))
-        XCTAssertTrue(html.contains("\"lineColor\":\"#58a6ff\""))
+        XCTAssertTrue(html.contains("\"theme\":\"base\""))
+        XCTAssertTrue(html.contains("\"darkMode\":true"))
+        XCTAssertTrue(html.contains("\"lineColor\":\"#60a5fa\""))
     }
 
     func testRendererAppliesPaperMermaidThemeConfig() {
         let renderer = MarkdownHTMLRenderer()
         let html = renderer.render(markdown: "```mermaid\ngraph TD\nA-->B\n```", theme: .paper)
 
-        XCTAssertTrue(html.contains("\"theme\":\"neutral\""))
-        XCTAssertTrue(html.contains("\"primaryColor\":\"#f2eadc\""))
+        XCTAssertTrue(html.contains("\"theme\":\"base\""))
+        XCTAssertTrue(html.contains("\"primaryColor\":\"#f5ede2\""))
+        XCTAssertTrue(html.contains("\"lineColor\":\"#92400e\""))
+    }
+
+    func testRendererAppliesClassicMermaidThemeConfig() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "```mermaid\ngraph TD\nA-->B\n```", theme: .classic)
+
+        XCTAssertTrue(html.contains("\"theme\":\"base\""))
+        XCTAssertTrue(html.contains("\"primaryColor\":\"#eef2ff\""))
+        XCTAssertTrue(html.contains("\"lineColor\":\"#6366f1\""))
     }
 
     func testRendererPinsMermaidRuntimeVersion() {
@@ -194,5 +205,35 @@ final class MarkdownHTMLRendererTests: XCTestCase {
         XCTAssertTrue(html.contains("graph TD"))
         XCTAssertTrue(html.contains("style A fill:#000,stroke:#f66"))
         XCTAssertTrue(html.contains("class=\"mermaid-error-detail\""))
+    }
+
+    func testRendererIncludesMermaidContainerAndSVGPolishInClassicTheme() throws {
+        let renderer = MarkdownHTMLRenderer()
+        let fixtureURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures")
+            .appendingPathComponent("mermaid-mindmap.md")
+        let markdown = try String(contentsOf: fixtureURL)
+        let html = renderer.render(markdown: markdown, theme: .classic)
+
+        XCTAssertTrue(html.contains(".edgePath .path"))
+        XCTAssertTrue(html.contains("border-radius: 12px"))
+        XCTAssertTrue(html.contains("background: #fafaff"))
+    }
+
+    func testRendererSupportsMultipleMermaidDiagramTypesFixture() throws {
+        let renderer = MarkdownHTMLRenderer()
+        let fixtureURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures")
+            .appendingPathComponent("mermaid-multi-diagrams.md")
+        let markdown = try String(contentsOf: fixtureURL)
+        let html = renderer.render(markdown: markdown, theme: .paper)
+
+        let mermaidContainerCount = html.components(separatedBy: "class=\"mermaid-container\"").count - 1
+        XCTAssertEqual(mermaidContainerCount, 2)
+        XCTAssertTrue(html.contains("flowchart LR"))
+        XCTAssertTrue(html.contains("sequenceDiagram"))
+        XCTAssertTrue(html.contains("border-radius: 10px"))
     }
 }

@@ -184,6 +184,41 @@ enum HTMLTemplateBuilder {
               if (sourceNode) { sourceNode.hidden = false; }
             }
 
+            function sanitizeMermaidSVG(root) {
+              if (!root || !root.querySelectorAll) { return; }
+              var lineNodes = root.querySelectorAll('line[class*="node-line"]');
+              lineNodes.forEach(function (node) {
+                node.remove();
+              });
+              var backgroundRects = root.querySelectorAll("svg > rect.background, svg > rect[id*='background']");
+              backgroundRects.forEach(function (rect) {
+                rect.remove();
+              });
+              var svgNs = "http://www.w3.org/2000/svg";
+              var mindmapNodePaths = root.querySelectorAll(".mindmap-node path.node-bkg.node-no-border");
+              mindmapNodePaths.forEach(function (pathNode) {
+                try {
+                  var bbox = pathNode.getBBox();
+                  if (!bbox || !isFinite(bbox.width) || !isFinite(bbox.height) || bbox.width <= 0 || bbox.height <= 0) {
+                    return;
+                  }
+                  var rect = document.createElementNS(svgNs, "rect");
+                  rect.setAttribute("x", String(bbox.x));
+                  rect.setAttribute("y", String(bbox.y));
+                  rect.setAttribute("width", String(bbox.width));
+                  rect.setAttribute("height", String(bbox.height));
+                  rect.setAttribute("rx", "8");
+                  rect.setAttribute("ry", "8");
+                  ["class", "style", "fill", "stroke", "stroke-width", "opacity", "filter"].forEach(function (name) {
+                    var value = pathNode.getAttribute(name);
+                    if (value) { rect.setAttribute(name, value); }
+                  });
+                  pathNode.parentNode.insertBefore(rect, pathNode);
+                  pathNode.remove();
+                } catch (_) {}
+              });
+            }
+
             function renderMermaidBlocks() {
               var blocks = Array.prototype.slice.call(document.querySelectorAll("pre.mermaid"));
               if (blocks.length === 0) {
@@ -230,8 +265,14 @@ enum HTMLTemplateBuilder {
                     if (timedOut) { return; }
                     var wrapper = document.createElement("div");
                     wrapper.className = "mermaid-svg";
-                    wrapper.innerHTML = result.svg;
+                    var scrollLayer = document.createElement("div");
+                    scrollLayer.className = "mermaid-svg-scroll";
+                    scrollLayer.innerHTML = result.svg;
+                    wrapper.appendChild(scrollLayer);
                     block.replaceWith(wrapper);
+                    requestAnimationFrame(function () {
+                      sanitizeMermaidSVG(wrapper);
+                    });
                   }).catch(function (error) {
                     if (timedOut) { return; }
                     var detail = formatErrorSummary(error);

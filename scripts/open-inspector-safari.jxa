@@ -1,0 +1,21 @@
+#!/usr/bin/env osascript -l JavaScript
+
+/**
+ * AppleScript/JXA to automate Safari and extract console output
+ * Unfortunately this approach has limitations with console access
+ */
+
+function run(argv) {
+  const Safari = Application('Safari');
+  Safari.includeStandardAdditions = true;
+  
+  const filePath = 'file:///Users/soleilyu/Code/self/md2jpeg/scripts/.tmp/dom-inspector.html';
+  
+  // Open in Safari
+  Safari.openLocation(filePath);
+  
+  // Wait for page to load
+  delay(3);
+  
+  return "Page opened. Please check Safari's Web Inspector console for output.";
+}

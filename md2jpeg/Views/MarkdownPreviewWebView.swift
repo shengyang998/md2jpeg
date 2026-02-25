@@ -44,6 +44,11 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.userContentController.add(MermaidLogScriptMessageHandler(), name: "md2jpegMermaidLog")
         let webView = PreviewWebView(frame: .zero, configuration: configuration)
+        #if DEBUG
+        if #available(iOS 16.4, *) {
+            webView.isInspectable = true
+        }
+        #endif
         webView.navigationDelegate = context.coordinator
         webView.scrollView.delegate = context.coordinator
         webView.scrollView.isScrollEnabled = true

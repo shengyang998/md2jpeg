@@ -63,6 +63,11 @@ final class ImageExportService {
 
         let frame = CGRect(x: 0, y: 0, width: limits.targetWidth, height: 1200)
         let webView = WKWebView(frame: frame, configuration: configuration)
+        #if DEBUG
+        if #available(iOS 16.4, *) {
+            webView.isInspectable = true
+        }
+        #endif
         webView.scrollView.contentInsetAdjustmentBehavior = .never
         webView.scrollView.isScrollEnabled = true
 
