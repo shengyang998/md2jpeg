@@ -127,7 +127,8 @@ struct MarkdownHTMLRenderer {
             return """
             <div class="mermaid-container" data-mermaid-container="true">
               <pre class="mermaid">\(escapedSource)</pre>
-              <div class="mermaid-error" hidden>Unable to render Mermaid diagram. Showing source.</div>
+              <div class="mermaid-error" hidden>Unable to render Mermaid diagram.</div>
+              <div class="mermaid-error-detail" hidden></div>
               <pre class="mermaid-source-fallback" hidden>\(escapedSource)</pre>
             </div>
             """

@@ -59,6 +59,7 @@ final class ImageExportService {
     private func makeBackgroundWebView(html: String) -> (webView: WKWebView, hostView: UIView?) {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.userContentController.add(MermaidLogScriptMessageHandler(), name: "md2jpegMermaidLog")
 
         let frame = CGRect(x: 0, y: 0, width: limits.targetWidth, height: 1200)
         let webView = WKWebView(frame: frame, configuration: configuration)

@@ -1,15 +1,4 @@
-## Requirements
-
-### Requirement: Renderer supports GitHub-style Markdown tables
-The system SHALL parse and render GitHub-style Markdown table syntax into structured table output in preview and export rendering contexts.
-
-#### Scenario: Render basic table in preview
-- **WHEN** a user enters Markdown containing a valid header row, delimiter row, and body rows
-- **THEN** the preview shows a structured table with aligned columns and visible cell boundaries
-
-#### Scenario: Preserve table in exported image
-- **WHEN** a user exports Markdown containing a rendered table
-- **THEN** the exported single image includes the table content without dropping rows or columns
+## MODIFIED Requirements
 
 ### Requirement: Renderer supports Mermaid fenced code blocks
 The system SHALL detect fenced code blocks marked as `mermaid` and render them as diagram visuals in preview and export rendering contexts. The system SHALL run Mermaid source through a compatibility normalization stage before rendering, without mutating the underlying Markdown document content.

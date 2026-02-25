@@ -2,6 +2,23 @@ import SwiftUI
 import WebKit
 import os
 
+final class MermaidLogScriptMessageHandler: NSObject, WKScriptMessageHandler {
+    private static let logger = Logger(subsystem: "md2jpeg", category: "mermaid")
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        guard message.name == "md2jpegMermaidLog" else { return }
+        if
+            let dictionary = message.body as? [String: Any],
+            let data = try? JSONSerialization.data(withJSONObject: dictionary, options: [.sortedKeys]),
+            let json = String(data: data, encoding: .utf8)
+        {
+            Self.logger.error("Mermaid event: \(json, privacy: .public)")
+            return
+        }
+        Self.logger.error("Mermaid event: \(String(describing: message.body), privacy: .public)")
+    }
+}
+
 final class PreviewWebView: WKWebView {
     var lastLoadedHTMLFingerprint: Int?
     var pendingRestoreOffsetY: CGFloat?
@@ -25,6 +42,7 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.userContentController.add(MermaidLogScriptMessageHandler(), name: "md2jpegMermaidLog")
         let webView = PreviewWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = context.coordinator
         webView.scrollView.delegate = context.coordinator

@@ -163,4 +163,36 @@ final class MarkdownHTMLRendererTests: XCTestCase {
         XCTAssertTrue(html.contains("\"theme\":\"neutral\""))
         XCTAssertTrue(html.contains("\"primaryColor\":\"#f2eadc\""))
     }
+
+    func testRendererPinsMermaidRuntimeVersion() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "```mermaid\ngraph TD\nA-->B\n```", theme: .classic)
+
+        XCTAssertTrue(html.contains("mermaid@10.9.5"))
+        XCTAssertFalse(html.contains("mermaid@10/dist"))
+    }
+
+    func testRendererInjectsMermaidNormalizationAndDiagnosticsHooks() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "```mermaid\ngraph TD\nA-->B\n```", theme: .dark)
+
+        XCTAssertTrue(html.contains("normalizeMermaidSource"))
+        XCTAssertTrue(html.contains("md2jpegMermaidLog"))
+        XCTAssertTrue(html.contains("class=\"mermaid-error-detail\""))
+        XCTAssertTrue(html.contains("Mermaid render timed out after"))
+    }
+
+    func testRendererKeepsOriginalMermaidCompatibilitySourceInFallback() throws {
+        let renderer = MarkdownHTMLRenderer()
+        let fixtureURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .appendingPathComponent("Fixtures")
+            .appendingPathComponent("mermaid-compatibility.md")
+        let markdown = try String(contentsOf: fixtureURL)
+        let html = renderer.render(markdown: markdown, theme: .classic)
+
+        XCTAssertTrue(html.contains("graph TD"))
+        XCTAssertTrue(html.contains("style A fill:#000,stroke:#f66"))
+        XCTAssertTrue(html.contains("class=\"mermaid-error-detail\""))
+    }
 }

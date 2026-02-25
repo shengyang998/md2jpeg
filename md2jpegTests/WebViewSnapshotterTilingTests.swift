@@ -62,4 +62,11 @@ final class WebViewSnapshotterTilingTests: XCTestCase {
         XCTAssertTrue(snapshotter.evaluateReadiness("complete"))
         XCTAssertFalse(snapshotter.evaluateReadiness("loading"))
     }
+
+    func testEvaluateReadinessAllowsCompleteWhenCustomFlagMissing() {
+        let snapshotter = WebViewSnapshotter(limits: .default)
+
+        XCTAssertTrue(snapshotter.evaluateReadiness(["readyState": "complete"]))
+        XCTAssertFalse(snapshotter.evaluateReadiness(["readyState": "interactive"]))
+    }
 }
