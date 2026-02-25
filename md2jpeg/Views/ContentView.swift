@@ -8,8 +8,8 @@ struct ContentView: View {
     @State private var renderedHTML: String = ""
     @State private var isPreviewSheetPresented = false
     @State private var selectedPreviewDetent: PresentationDetent = .height(Self.collapsedPreviewBaseHeight)
-    @State private var isClearConfirmationPresented = false
-    @State private var lastClearDialogDismissedAt: Date?
+    @State private var isClearButtonArmed = false
+    @State private var clearButtonResetTask: Task<Void, Never>?
 
     private let renderer = MarkdownHTMLRenderer()
     private let exportService = ImageExportService()
@@ -71,9 +71,15 @@ struct ContentView: View {
             }
             .onChange(of: appState.markdownText) { _ in
                 refreshRenderedHTML()
+                if isClearButtonArmed {
+                    disarmClearButtonConfirmation()
+                }
             }
             .onChange(of: appState.selectedTheme) { _ in
                 refreshRenderedHTML()
+            }
+            .onDisappear {
+                disarmClearButtonConfirmation()
             }
         }
     }
@@ -85,20 +91,7 @@ struct ContentView: View {
             }
             .buttonStyle(.bordered)
 
-            Button("Clear") {
-                print("[ClearDialog] Clear tapped. currentlyPresented=\(isClearConfirmationPresented)")
-                if let dismissedAt = lastClearDialogDismissedAt,
-                   Date().timeIntervalSince(dismissedAt) < 0.4 {
-                    print("[ClearDialog] Ignoring tap during dismiss cooldown.")
-                    return
-                }
-                guard !isClearConfirmationPresented else {
-                    print("[ClearDialog] Ignoring duplicate present request.")
-                    return
-                }
-                isClearConfirmationPresented = true
-            }
-            .buttonStyle(.bordered)
+            clearButton
 
             Spacer()
 
@@ -122,6 +115,26 @@ struct ContentView: View {
             .disabled(appState.isExporting || appState.isPreviewLoading)
         }
         .onTapGesture { dismissKeyboard() }
+    }
+
+    @ViewBuilder
+    private var clearButton: some View {
+        if isClearButtonArmed {
+            Button("Confirm Clear", role: .destructive) {
+                disarmClearButtonConfirmation()
+                appState.markdownText = ""
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(.red)
+            .accessibilityHint("Tap to remove all markdown content.")
+        } else {
+            Button("Clear") {
+                armClearButtonConfirmation()
+            }
+            .buttonStyle(.bordered)
+            .disabled(appState.markdownText.isEmpty)
+            .accessibilityHint("Tap once, then tap Confirm Clear to clear all markdown.")
+        }
     }
 
     private var previewSheet: some View {
@@ -161,29 +174,6 @@ struct ContentView: View {
         .background(.regularMaterial)
         .onTapGesture { dismissKeyboard() }
         .ignoresSafeArea(.container, edges: .top)
-        .onChange(of: isClearConfirmationPresented) { isPresented in
-            print("[ClearDialog] isPresented -> \(isPresented)")
-            if !isPresented {
-                lastClearDialogDismissedAt = Date()
-            }
-        }
-        .confirmationDialog(
-            "Clear markdown?",
-            isPresented: $isClearConfirmationPresented,
-            titleVisibility: .visible
-        ) {
-            Button("Clear All", role: .destructive) {
-                print("[ClearDialog] Confirmed clear action.")
-                appState.markdownText = ""
-                isClearConfirmationPresented = false
-            }
-            Button("Cancel", role: .cancel) {
-                print("[ClearDialog] Cancel tapped.")
-                isClearConfirmationPresented = false
-            }
-        } message: {
-            Text("This will remove all current markdown content.")
-        }
     }
 
     private var safeAreaBottomInset: CGFloat {
@@ -208,6 +198,25 @@ struct ContentView: View {
 
     private func refreshRenderedHTML() {
         renderedHTML = renderer.render(markdown: appState.markdownText, theme: appState.selectedTheme)
+    }
+
+    private func armClearButtonConfirmation() {
+        guard !appState.markdownText.isEmpty else { return }
+
+        isClearButtonArmed = true
+        clearButtonResetTask?.cancel()
+        clearButtonResetTask = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            isClearButtonArmed = false
+            clearButtonResetTask = nil
+        }
+    }
+
+    private func disarmClearButtonConfirmation() {
+        clearButtonResetTask?.cancel()
+        clearButtonResetTask = nil
+        isClearButtonArmed = false
     }
 
     private func handleExport() async {
