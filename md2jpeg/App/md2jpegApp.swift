@@ -8,6 +8,7 @@ struct md2jpegApp: App {
         WindowGroup {
             ContentView()
                 .environmentObject(appState)
+                .tint(Color("AccentColor"))
         }
     }
 }

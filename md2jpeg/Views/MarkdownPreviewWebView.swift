@@ -29,13 +29,13 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
     let onLoadingStateChange: (Bool) -> Void
     let onError: (String?) -> Void
     let onWebViewCreated: (WKWebView) -> Void
-    let onTopEdgePullDown: (CGFloat) -> Void
+    let onScrollOffsetChange: (CGFloat) -> Void
 
     func makeCoordinator() -> Coordinator {
         Coordinator(
             onLoadingStateChange: onLoadingStateChange,
             onError: onError,
-            onTopEdgePullDown: onTopEdgePullDown
+            onScrollOffsetChange: onScrollOffsetChange
         )
     }
 
@@ -66,16 +66,16 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
         private static let logger = Logger(subsystem: "md2jpeg", category: "preview")
         let onLoadingStateChange: (Bool) -> Void
         let onError: (String?) -> Void
-        let onTopEdgePullDown: (CGFloat) -> Void
+        let onScrollOffsetChange: (CGFloat) -> Void
 
         init(
             onLoadingStateChange: @escaping (Bool) -> Void,
             onError: @escaping (String?) -> Void,
-            onTopEdgePullDown: @escaping (CGFloat) -> Void
+            onScrollOffsetChange: @escaping (CGFloat) -> Void
         ) {
             self.onLoadingStateChange = onLoadingStateChange
             self.onError = onError
-            self.onTopEdgePullDown = onTopEdgePullDown
+            self.onScrollOffsetChange = onScrollOffsetChange
         }
 
         func loadIfNeeded(html: String, into webView: WKWebView) {
@@ -118,8 +118,7 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
         }
 
         func scrollViewDidScroll(_ scrollView: UIScrollView) {
-            guard scrollView.contentOffset.y < 0 else { return }
-            onTopEdgePullDown(abs(scrollView.contentOffset.y))
+            onScrollOffsetChange(max(scrollView.contentOffset.y, 0))
         }
 
         private func restoreScrollOffsetIfNeeded(in webView: WKWebView) {

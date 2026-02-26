@@ -2,23 +2,24 @@ import SwiftUI
 
 struct MarkdownEditorView: View {
     @Binding var text: String
-    var bottomContentInset: CGFloat = 0
+    @Binding var scrollOffset: CGFloat
+    var topBarHeight: CGFloat
+    var bottomBarHeight: CGFloat
 
     var body: some View {
-        InsetTextView(text: $text, bottomContentInset: bottomContentInset)
-            .background(
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(Color(uiColor: .secondarySystemBackground))
-            )
+        InsetTextView(text: $text, scrollOffset: $scrollOffset, topBarHeight: topBarHeight, bottomBarHeight: bottomBarHeight)
+            .background(.ultraThinMaterial)
     }
 }
 
 private struct InsetTextView: UIViewRepresentable {
     @Binding var text: String
-    let bottomContentInset: CGFloat
+    @Binding var scrollOffset: CGFloat
+    var topBarHeight: CGFloat
+    var bottomBarHeight: CGFloat
 
     func makeCoordinator() -> Coordinator {
-        Coordinator(text: $text)
+        Coordinator(text: $text, scrollOffset: $scrollOffset)
     }
 
     func makeUIView(context: Context) -> UITextView {
@@ -42,19 +43,43 @@ private struct InsetTextView: UIViewRepresentable {
     }
 
     private func applyInsets(to textView: UITextView) {
-        textView.textContainerInset = UIEdgeInsets(top: 8, left: 8, bottom: 8 + bottomContentInset, right: 8)
-        textView.scrollIndicatorInsets = UIEdgeInsets(top: 8, left: 0, bottom: 8 + bottomContentInset, right: 0)
+        let safeArea = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .flatMap(\.windows)
+            .first(where: \.isKeyWindow)?
+            .safeAreaInsets ?? .zero
+
+        let topInset = safeArea.top + topBarHeight
+        let bottomInset = safeArea.bottom + bottomBarHeight
+
+        let newContentInset = UIEdgeInsets(top: topInset, left: 16, bottom: bottomInset, right: 16)
+        if textView.textContainerInset != newContentInset {
+            textView.textContainerInset = newContentInset
+        }
+
+        let newScrollInset = UIEdgeInsets(top: topInset, left: 0, bottom: bottomInset, right: 0)
+        if textView.scrollIndicatorInsets != newScrollInset {
+            textView.scrollIndicatorInsets = newScrollInset
+        }
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
         @Binding private var text: String
+        @Binding private var scrollOffset: CGFloat
 
-        init(text: Binding<String>) {
+        init(text: Binding<String>, scrollOffset: Binding<CGFloat>) {
             self._text = text
+            self._scrollOffset = scrollOffset
         }
 
         func textViewDidChange(_ textView: UITextView) {
             text = textView.text
+        }
+
+        func scrollViewDidScroll(_ scrollView: UIScrollView) {
+            DispatchQueue.main.async {
+                self.scrollOffset = scrollView.contentOffset.y
+            }
         }
     }
 }

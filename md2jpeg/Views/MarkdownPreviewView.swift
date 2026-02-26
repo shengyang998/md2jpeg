@@ -6,7 +6,7 @@ struct MarkdownPreviewView: View {
     @Binding var isLoading: Bool
     @Binding var errorMessage: String?
     @Binding var webViewRef: WKWebView?
-    var onTopEdgePullDown: (CGFloat) -> Void = { _ in }
+    @Binding var scrollOffset: CGFloat
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -15,9 +15,8 @@ struct MarkdownPreviewView: View {
                 onLoadingStateChange: { isLoading = $0 },
                 onError: { errorMessage = $0 },
                 onWebViewCreated: { webViewRef = $0 },
-                onTopEdgePullDown: onTopEdgePullDown
+                onScrollOffsetChange: { scrollOffset = $0 }
             )
-            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             if isLoading {
                 ProgressView("Rendering preview...")

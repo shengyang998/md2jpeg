@@ -6,7 +6,7 @@ final class AppState: ObservableObject {
     private enum PersistenceKey {
         static let markdownText = "app.markdownText"
         static let selectedTheme = "app.selectedTheme"
-        static let selectedFormat = "app.selectedFormat"
+        static let isRawMode = "app.isRawMode"
     }
 
     private static let defaultMarkdownText = """
@@ -38,10 +38,10 @@ final class AppState: ObservableObject {
             userDefaults.set(selectedTheme.rawValue, forKey: PersistenceKey.selectedTheme)
         }
     }
-    @Published var selectedFormat: ExportFormat {
+    @Published var isRawMode: Bool {
         didSet {
             guard persistenceEnabled else { return }
-            userDefaults.set(selectedFormat.rawValue, forKey: PersistenceKey.selectedFormat)
+            userDefaults.set(isRawMode, forKey: PersistenceKey.isRawMode)
         }
     }
 
@@ -64,12 +64,10 @@ final class AppState: ObservableObject {
             self.selectedTheme = .classic
         }
 
-        if let formatRawValue = userDefaults.string(forKey: PersistenceKey.selectedFormat),
-           let restoredFormat = ExportFormat(rawValue: formatRawValue) {
-            self.selectedFormat = restoredFormat
+        if userDefaults.object(forKey: PersistenceKey.isRawMode) != nil {
+            self.isRawMode = userDefaults.bool(forKey: PersistenceKey.isRawMode)
         } else {
-            // JPEG is the first-run default.
-            self.selectedFormat = .jpeg
+            self.isRawMode = true
         }
 
         self.persistenceEnabled = true
