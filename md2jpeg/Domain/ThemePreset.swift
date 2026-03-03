@@ -21,4 +21,13 @@ enum ThemePreset: String, CaseIterable, Identifiable {
     var cssFileName: String {
         "theme-\(rawValue)"
     }
+
+    var isDarkAppearance: Bool {
+        switch self {
+        case .classic, .paper:
+            return false
+        case .dark:
+            return true
+        }
+    }
 }
