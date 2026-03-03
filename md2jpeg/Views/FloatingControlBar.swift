@@ -5,47 +5,53 @@ struct FloatingControlBar: View {
     @Binding var selectedTheme: ThemePreset
     let onExport: (ExportFormat) -> Void
 
+    @Environment(\.overlayColors) private var colors
+
     private let themes = ThemePreset.allCases
     private let formats = ExportFormat.allCases
 
     var body: some View {
-        HStack {
-            Menu {
-                ForEach(themes) { theme in
-                    Button {
-                        selectedTheme = theme
-                    } label: {
-                        if selectedTheme == theme {
-                            Label(theme.displayName, systemImage: "checkmark")
-                        } else {
-                            Text(theme.displayName)
+        GlassEffectContainer {
+            HStack {
+                Menu {
+                    ForEach(themes) { theme in
+                        Button {
+                            selectedTheme = theme
+                        } label: {
+                            if selectedTheme == theme {
+                                Label(theme.displayName, systemImage: "checkmark")
+                            } else {
+                                Text(theme.displayName)
+                            }
                         }
                     }
+                } label: {
+                    Image(systemName: "paintpalette")
+                        .font(.system(size: 44 * 0.4, weight: .medium))
+                        .foregroundStyle(colors.iconPrimary)
+                        .frame(width: 44, height: 44)
+                        .glassEffect(.regular, in: .circle)
                 }
-            } label: {
-                Image(systemName: "paintpalette")
-                    .font(.system(size: 44 * 0.4, weight: .medium))
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial, in: Circle())
-            }
 
-            Spacer()
+                Spacer()
 
-            ModeToggle(isRawMode: $isRawMode)
+                ModeToggle(isRawMode: $isRawMode)
 
-            Spacer()
+                Spacer()
 
-            Menu {
-                ForEach(formats) { format in
-                    Button(format.displayName) {
-                        onExport(format)
+                Menu {
+                    ForEach(formats) { format in
+                        Button(format.displayName) {
+                            onExport(format)
+                        }
                     }
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 44 * 0.4, weight: .medium))
+                        .foregroundStyle(colors.iconPrimary)
+                        .frame(width: 44, height: 44)
+                        .glassEffect(.regular, in: .circle)
                 }
-            } label: {
-                Image(systemName: "square.and.arrow.up")
-                    .font(.system(size: 44 * 0.4, weight: .medium))
-                    .frame(width: 44, height: 44)
-                    .background(.ultraThinMaterial, in: Circle())
             }
         }
         .padding(.horizontal, 20)

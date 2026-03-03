@@ -17,6 +17,7 @@ private struct BottomBarHeightKey: PreferenceKey {
 
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
+    @Environment(\.colorScheme) private var colorScheme
 
     @State private var webViewRef: WKWebView?
     @State private var renderedHTML: String = ""
@@ -30,10 +31,19 @@ struct ContentView: View {
     private let exportService = ImageExportService()
     private let photoLibrarySaver = PhotoLibrarySaver()
 
+    private var effectiveOverlayColors: OverlayColors {
+        if appState.isRawMode {
+            return OverlayColors(isDarkBackground: colorScheme == .dark)
+        } else {
+            return OverlayColors(isDarkBackground: appState.selectedTheme.isDarkAppearance)
+        }
+    }
+
     var body: some View {
         ZStack {
             contentLayer
             controlsOverlay
+                .environment(\.overlayColors, effectiveOverlayColors)
             if appState.isExporting {
                 ExportProgressOverlay(progress: appState.exportProgress)
                     .transition(.opacity)
@@ -81,16 +91,20 @@ struct ContentView: View {
     // MARK: - Controls Overlay
 
     private var controlsOverlay: some View {
-        VStack {
-            HStack {
-                Text("Markdown-Image")
-                    .font(.caption.weight(.semibold))
-                    .tracking(2)
-                    .foregroundStyle(.secondary)
-                    .opacity(showTitle ? 1 : 0)
-                    .animation(.easeInOut(duration: 0.2), value: showTitle)
-                Spacer()
-                if appState.isRawMode {
+        let colors = effectiveOverlayColors
+
+        return VStack {
+            GlassEffectContainer {
+                HStack {
+                    Text("Markdown-Image")
+                        .font(.caption.weight(.semibold))
+                        .tracking(2)
+                        .foregroundStyle(colors.labelSecondary)
+                        .opacity(showTitle ? 1 : 0)
+                        .animation(.easeInOut(duration: 0.2), value: showTitle)
+
+                    Spacer()
+
                     GlassButton(icon: "doc.on.clipboard") {
                         if let text = UIPasteboard.general.string {
                             appState.markdownText = text
@@ -104,8 +118,9 @@ struct ContentView: View {
                     } label: {
                         Image(systemName: "trash")
                             .font(.system(size: 44 * 0.4, weight: .medium))
+                            .foregroundStyle(colors.iconPrimary)
                             .frame(width: 44, height: 44)
-                            .background(.ultraThinMaterial, in: Circle())
+                            .glassEffect(.regular, in: .circle)
                     }
                     .disabled(appState.markdownText.isEmpty)
                     .opacity(appState.markdownText.isEmpty ? 0.4 : 1)
@@ -118,17 +133,16 @@ struct ContentView: View {
                     Color.clear.preference(key: TopBarHeightKey.self, value: geo.size.height)
                 }
             )
-            .animation(.spring(response: 0.35, dampingFraction: 0.8), value: appState.isRawMode)
 
             Spacer()
 
             if let exportInfoMessage = appState.exportInfoMessage, !appState.isExporting {
                 Text(exportInfoMessage)
                     .font(.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(colors.labelSecondary)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
-                    .background(.ultraThinMaterial, in: Capsule())
+                    .glassEffect(.regular, in: .capsule)
                     .onTapGesture {
                         appState.exportInfoMessage = nil
                     }
