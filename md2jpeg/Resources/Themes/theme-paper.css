@@ -45,6 +45,24 @@ th {
   background: #f2eadc;
 }
 
+.math-inline {
+  color: #2f2a24;
+}
+
+.math-display {
+  color: #2f2a24;
+  text-align: center;
+  margin: 16px 0;
+  overflow-x: auto;
+}
+
+.math-inline:not(.katex-rendered),
+.math-display:not(.katex-rendered) {
+  visibility: hidden;
+  height: 0;
+  overflow: hidden;
+}
+
 .mermaid-container {
   margin: 16px 0;
   --mermaid-card-radius: 14px;

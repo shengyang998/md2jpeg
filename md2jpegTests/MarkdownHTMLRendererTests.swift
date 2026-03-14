@@ -12,7 +12,7 @@ final class MarkdownHTMLRendererTests: XCTestCase {
     func testRendererEscapesUnsafeFallbackCharacters() {
         let renderer = MarkdownHTMLRenderer()
         let html = renderer.render(markdown: "<script>", theme: .dark)
-        XCTAssertFalse(html.contains("<script>"))
+        XCTAssertTrue(html.contains("&lt;script&gt;"))
     }
 
     func testRendererKeepsLeadingLineContent() {
@@ -191,6 +191,115 @@ final class MarkdownHTMLRendererTests: XCTestCase {
         XCTAssertTrue(html.contains("md2jpegMermaidLog"))
         XCTAssertTrue(html.contains("class=\"mermaid-error-detail\""))
         XCTAssertTrue(html.contains("Mermaid render timed out after"))
+    }
+
+    // MARK: - Italic and Bold-Italic
+
+    func testRendererSupportsItalicWithSingleAsterisk() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "*italic text*", theme: .classic)
+        XCTAssertTrue(html.contains("<em>italic text</em>"))
+    }
+
+    func testRendererSupportsBoldItalicWithTripleAsterisk() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "***bold italic***", theme: .classic)
+        XCTAssertTrue(html.contains("<strong><em>bold italic</em></strong>"))
+    }
+
+    func testRendererSupportsMixedEmphasisOnSameLine() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "**bold** and *italic*", theme: .classic)
+        XCTAssertTrue(html.contains("<strong>bold</strong>"))
+        XCTAssertTrue(html.contains("<em>italic</em>"))
+    }
+
+    func testRendererHandlesAllEmphasisLevelsOnSameLine() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "***all*** then **bold** then *italic*", theme: .classic)
+        XCTAssertTrue(html.contains("<strong><em>all</em></strong>"))
+        XCTAssertTrue(html.contains("<strong>bold</strong>"))
+        XCTAssertTrue(html.contains("<em>italic</em>"))
+    }
+
+    func testRendererLeavesUnmatchedAsteriskAsIs() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "price is 5*3", theme: .classic)
+        XCTAssertFalse(html.contains("<em>"))
+        XCTAssertTrue(html.contains("5*3"))
+    }
+
+    func testRendererKeepsBoldWorkingAfterRefactor() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "**bold text**", theme: .classic)
+        XCTAssertTrue(html.contains("<strong>bold text</strong>"))
+    }
+
+    // MARK: - Display Math
+
+    func testRendererSupportsMultiLineDisplayMath() {
+        let renderer = MarkdownHTMLRenderer()
+        let markdown = "$$\n\\sum_{i=0}^{n} i\n$$"
+        let html = renderer.render(markdown: markdown, theme: .classic)
+        XCTAssertTrue(html.contains("class=\"math-display\""))
+        XCTAssertTrue(html.contains("data-latex="))
+    }
+
+    func testRendererSupportsSingleLineDisplayMath() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "$$E = mc^2$$", theme: .classic)
+        XCTAssertTrue(html.contains("class=\"math-display\""))
+        XCTAssertTrue(html.contains("E = mc^2"))
+    }
+
+    func testRendererIgnoresEmptyDisplayMath() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "$$$$", theme: .classic)
+        XCTAssertFalse(html.contains("class=\"math-display\""))
+    }
+
+    func testRendererDisplayMathPreservesRawLatex() {
+        let renderer = MarkdownHTMLRenderer()
+        let markdown = "$$\nx < y\n$$"
+        let html = renderer.render(markdown: markdown, theme: .classic)
+        XCTAssertTrue(html.contains("data-latex="))
+        XCTAssertTrue(html.contains("x &lt; y"))
+    }
+
+    // MARK: - Inline Math
+
+    func testRendererSupportsInlineMath() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "The equation $E = mc^2$ is famous", theme: .classic)
+        XCTAssertTrue(html.contains("class=\"math-inline\""))
+        XCTAssertTrue(html.contains("E = mc^2"))
+    }
+
+    func testRendererRejectsDollarSignWithAdjacentWhitespace() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "costs $ 5.00 $ today", theme: .classic)
+        XCTAssertFalse(html.contains("class=\"math-inline\""))
+    }
+
+    func testRendererInlineMathPreservesAngleBrackets() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "if $x < y$ then", theme: .classic)
+        XCTAssertTrue(html.contains("class=\"math-inline\""))
+        XCTAssertTrue(html.contains("data-latex=\"x &lt; y\""))
+    }
+
+    func testRendererInlineMathPreservesAmpersand() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "use $A \\& B$ here", theme: .classic)
+        XCTAssertTrue(html.contains("class=\"math-inline\""))
+        XCTAssertTrue(html.contains("&amp;"))
+    }
+
+    func testRendererMultipleInlineMathOnSameLine() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "$a$ and $b$", theme: .classic)
+        let mathCount = html.components(separatedBy: "class=\"math-inline\"").count - 1
+        XCTAssertEqual(mathCount, 2)
     }
 
     func testRendererKeepsOriginalMermaidCompatibilitySourceInFallback() throws {

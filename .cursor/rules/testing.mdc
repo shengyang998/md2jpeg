@@ -1,0 +1,31 @@
+---
+description: How to build and run unit tests for this iOS project
+alwaysApply: true
+---
+
+# Testing
+
+## Simulator Destination
+
+The project targets iOS. Use this destination for xcodebuild:
+
+```
+platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2
+```
+
+## Running Tests
+
+Run all tests:
+```bash
+xcodebuild test -scheme md2jpeg -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2'
+```
+
+Run a specific test class:
+```bash
+xcodebuild test -scheme md2jpeg -destination 'platform=iOS Simulator,name=iPhone 17 Pro Max,OS=26.2' -only-testing:md2jpegTests/MarkdownHTMLRendererTests
+```
+
+## Known Issues
+
+- `PreviewDrawerBehaviorTests.swift` has a pre-existing compilation error (`PreviewDrawerBehavior` type not found). Temporarily rename it to `.swift.disabled` if it blocks the test target from compiling.
+- Two Mermaid CSS polish tests (`testRendererIncludesMermaidContainerAndSVGPolishInClassicTheme`, `testRendererSupportsMultipleMermaidDiagramTypesFixture`) have stale CSS assertions and fail pre-existing.

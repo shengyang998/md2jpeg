@@ -4,6 +4,7 @@ enum HTMLTemplateBuilder {
     // Keep Mermaid runtime deterministic. Upgrade by validating fixtures against
     // the candidate version, then updating this constant in one place.
     private static let pinnedMermaidVersion = "10.9.5"
+    private static let pinnedKaTeXVersion = "0.16.11"
 
     static func build(bodyHTML: String, css: String, mermaidConfigJSON: String) -> String {
         """
@@ -12,6 +13,8 @@ enum HTMLTemplateBuilder {
         <head>
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@\(pinnedKaTeXVersion)/dist/katex.min.css" />
+          <script src="https://cdn.jsdelivr.net/npm/katex@\(pinnedKaTeXVersion)/dist/katex.min.js" onerror="window.__md2jpegKaTeXScriptFailed = true"></script>
           <script src="https://cdn.jsdelivr.net/npm/mermaid@\(pinnedMermaidVersion)/dist/mermaid.min.js" onerror="window.__md2jpegMermaidScriptFailed = true"></script>
           <style>
           \(css)
@@ -21,6 +24,8 @@ enum HTMLTemplateBuilder {
           <article class="markdown-root">\(bodyHTML)</article>
           <script>
           (function () {
+            var __readyState = { mermaid: false, katex: false };
+
             function logMermaidEvent(payload) {
               try {
                 if (
@@ -39,6 +44,13 @@ enum HTMLTemplateBuilder {
 
             function markReady() {
               document.body.setAttribute("data-md2jpeg-ready", "true");
+            }
+
+            function signalDone(key) {
+              __readyState[key] = true;
+              if (__readyState.mermaid && __readyState.katex) {
+                markReady();
+              }
             }
 
             function normalizeMermaidSource(source) {
@@ -222,7 +234,7 @@ enum HTMLTemplateBuilder {
             function renderMermaidBlocks() {
               var blocks = Array.prototype.slice.call(document.querySelectorAll("pre.mermaid"));
               if (blocks.length === 0) {
-                markReady();
+                signalDone("mermaid");
                 return;
               }
 
@@ -235,7 +247,7 @@ enum HTMLTemplateBuilder {
                   reason: "mermaid_undefined_or_script_failed",
                   blockCount: blocks.length
                 });
-                markReady();
+                signalDone("mermaid");
                 return;
               }
 
@@ -254,7 +266,7 @@ enum HTMLTemplateBuilder {
                   timeoutMs: timeoutMs,
                   blockCount: blocks.length
                 });
-                markReady();
+                signalDone("mermaid");
               }, timeoutMs);
 
               Promise.all(
@@ -290,14 +302,54 @@ enum HTMLTemplateBuilder {
               ).finally(function () {
                 if (timedOut) { return; }
                 clearTimeout(timeoutHandle);
-                markReady();
+                signalDone("mermaid");
               });
             }
 
-            if (document.readyState === "loading") {
-              document.addEventListener("DOMContentLoaded", renderMermaidBlocks);
-            } else {
+            function renderKaTeXBlocks() {
+              var inlineEls = Array.prototype.slice.call(document.querySelectorAll(".math-inline"));
+              var displayEls = Array.prototype.slice.call(document.querySelectorAll(".math-display"));
+
+              if (inlineEls.length === 0 && displayEls.length === 0) {
+                signalDone("katex");
+                return;
+              }
+
+              if (window.__md2jpegKaTeXScriptFailed || typeof katex === "undefined") {
+                signalDone("katex");
+                return;
+              }
+
+              inlineEls.forEach(function (el) {
+                var latex = el.getAttribute("data-latex");
+                if (!latex) { return; }
+                try {
+                  katex.render(latex, el, { throwOnError: false, displayMode: false });
+                  el.classList.add("katex-rendered");
+                } catch (_) {}
+              });
+
+              displayEls.forEach(function (el) {
+                var latex = el.getAttribute("data-latex");
+                if (!latex) { return; }
+                try {
+                  katex.render(latex, el, { throwOnError: false, displayMode: true });
+                  el.classList.add("katex-rendered");
+                } catch (_) {}
+              });
+
+              signalDone("katex");
+            }
+
+            function initRenderers() {
               renderMermaidBlocks();
+              renderKaTeXBlocks();
+            }
+
+            if (document.readyState === "loading") {
+              document.addEventListener("DOMContentLoaded", initRenderers);
+            } else {
+              initRenderers();
             }
           })();
           </script>

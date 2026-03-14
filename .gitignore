@@ -4,3 +4,10 @@
 *.xcuserstate
 xcuserdata/
 scripts/.tmp/
+
+# Build artifacts
+build/
+DerivedData/
+*.ipa
+*.dSYM.zip
+*.dSYM

@@ -31,6 +31,8 @@ struct MarkdownHTMLRenderer {
         var codeFenceLanguage = ""
         var codeBuffer: [String] = []
         var inList = false
+        var inMathBlock = false
+        var mathBuffer: [String] = []
         var index = 0
 
         while index < lines.count {
@@ -64,6 +66,46 @@ struct MarkdownHTMLRenderer {
                 continue
             }
 
+            if inMathBlock {
+                if line == "$$" {
+                    let latex = mathBuffer.joined(separator: "\n")
+                    if !latex.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        htmlParts.append(renderDisplayMath(latex))
+                    }
+                    inMathBlock = false
+                    mathBuffer = []
+                } else {
+                    mathBuffer.append(rawLine)
+                }
+                index += 1
+                continue
+            }
+
+            if line.hasPrefix("$$") && line.hasSuffix("$$") && line.count > 4 {
+                let latex = String(line.dropFirst(2).dropLast(2))
+                    .trimmingCharacters(in: .whitespaces)
+                if !latex.isEmpty {
+                    if inList {
+                        htmlParts.append("</ul>")
+                        inList = false
+                    }
+                    htmlParts.append(renderDisplayMath(latex))
+                    index += 1
+                    continue
+                }
+            }
+
+            if line == "$$" {
+                if inList {
+                    htmlParts.append("</ul>")
+                    inList = false
+                }
+                inMathBlock = true
+                mathBuffer = []
+                index += 1
+                continue
+            }
+
             if line.isEmpty {
                 if inList {
                     htmlParts.append("</ul>")
@@ -88,7 +130,7 @@ struct MarkdownHTMLRenderer {
                     htmlParts.append("<ul>")
                     inList = true
                 }
-                htmlParts.append("<li>\(applyInlineFormatting(to: escapeHTML(listItemContent)))</li>")
+                htmlParts.append("<li>\(processInlineContent(listItemContent))</li>")
                 index += 1
                 continue
             } else if inList {
@@ -105,7 +147,7 @@ struct MarkdownHTMLRenderer {
             if let heading = parseHeading(line) {
                 htmlParts.append(renderHeading(level: heading.level, text: heading.text))
             } else {
-                htmlParts.append("<p>\(applyInlineFormatting(to: escapeHTML(rawLine)))</p>")
+                htmlParts.append("<p>\(processInlineContent(rawLine))</p>")
             }
             index += 1
         }
@@ -115,6 +157,12 @@ struct MarkdownHTMLRenderer {
         }
         if inCodeBlock {
             htmlParts.append(renderCodeBlock(language: codeFenceLanguage, lines: codeBuffer))
+        }
+        if inMathBlock {
+            let latex = mathBuffer.joined(separator: "\n")
+            if !latex.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                htmlParts.append(renderDisplayMath(latex))
+            }
         }
 
         return htmlParts.joined(separator: "\n")
@@ -165,7 +213,7 @@ struct MarkdownHTMLRenderer {
         tableHTML.append("<table>")
         tableHTML.append("<thead><tr>")
         for cell in headerCells {
-            tableHTML.append("<th>\(applyInlineFormatting(to: escapeHTML(cell)))</th>")
+            tableHTML.append("<th>\(processInlineContent(cell))</th>")
         }
         tableHTML.append("</tr></thead>")
         if !bodyRows.isEmpty {
@@ -173,7 +221,7 @@ struct MarkdownHTMLRenderer {
             for row in bodyRows {
                 tableHTML.append("<tr>")
                 for cell in row {
-                    tableHTML.append("<td>\(applyInlineFormatting(to: escapeHTML(cell)))</td>")
+                    tableHTML.append("<td>\(processInlineContent(cell))</td>")
                 }
                 tableHTML.append("</tr>")
             }
@@ -246,7 +294,7 @@ struct MarkdownHTMLRenderer {
     }
 
     private func renderHeading(level: Int, text: String) -> String {
-        let escapedText = applyInlineFormatting(to: escapeHTML(text))
+        let escapedText = processInlineContent(text)
         if level <= 6 {
             return "<h\(level)>\(escapedText)</h\(level)>"
         }
@@ -260,26 +308,81 @@ struct MarkdownHTMLRenderer {
             .replacingOccurrences(of: ">", with: "&gt;")
     }
 
+    private func processInlineContent(_ text: String) -> String {
+        let (extracted, mathMap) = extractInlineMath(text)
+        let escaped = escapeHTML(extracted)
+        let formatted = applyInlineFormatting(to: escaped)
+        return reinsertInlineMath(formatted, mathMap: mathMap)
+    }
+
     private func applyInlineFormatting(to value: String) -> String {
         var result = value
-        result = replaceDelimited("**", withTag: "strong", in: result)
-        result = replaceDelimited("`", withTag: "code", in: result)
+        let replacements: [(pattern: String, template: String)] = [
+            ("\\*\\*\\*(.+?)\\*\\*\\*", "<strong><em>$1</em></strong>"),
+            ("\\*\\*(.+?)\\*\\*", "<strong>$1</strong>"),
+            ("\\*(.+?)\\*", "<em>$1</em>"),
+            ("`(.+?)`", "<code>$1</code>"),
+        ]
+        for (pattern, template) in replacements {
+            guard let regex = try? NSRegularExpression(pattern: pattern) else { continue }
+            result = regex.stringByReplacingMatches(
+                in: result,
+                range: NSRange(result.startIndex..., in: result),
+                withTemplate: template
+            )
+        }
         return result
     }
 
-    private func replaceDelimited(_ delimiter: String, withTag tag: String, in input: String) -> String {
-        let parts = input.components(separatedBy: delimiter)
-        guard parts.count >= 3 else { return input }
-
-        var output = ""
-        for (index, part) in parts.enumerated() {
-            if index % 2 == 0 {
-                output += part
-            } else {
-                output += "<\(tag)>\(part)</\(tag)>"
-            }
+    private func extractInlineMath(_ text: String) -> (String, [String: String]) {
+        guard let regex = try? NSRegularExpression(
+            pattern: "(?<!\\$)\\$(?!\\$)([^$]+?)\\$(?!\\$)"
+        ) else {
+            return (text, [:])
         }
-        return output
+
+        var mathMap: [String: String] = [:]
+        var result = ""
+        var lastEnd = text.startIndex
+        let matches = regex.matches(in: text, range: NSRange(text.startIndex..., in: text))
+
+        for match in matches {
+            guard let fullRange = Range(match.range, in: text),
+                  let contentRange = Range(match.range(at: 1), in: text) else { continue }
+
+            let content = String(text[contentRange])
+            if content.first?.isWhitespace == true || content.last?.isWhitespace == true {
+                continue
+            }
+
+            let placeholder = "@@MATH_\(UUID().uuidString)@@"
+            mathMap[placeholder] = content
+            result += text[lastEnd..<fullRange.lowerBound]
+            result += placeholder
+            lastEnd = fullRange.upperBound
+        }
+
+        result += text[lastEnd...]
+        return (result, mathMap)
+    }
+
+    private func reinsertInlineMath(_ text: String, mathMap: [String: String]) -> String {
+        var result = text
+        for (placeholder, latex) in mathMap {
+            let span = "<span class=\"math-inline\" data-latex=\"\(escapeHTMLAttribute(latex))\">"
+                + "\(escapeHTML(latex))</span>"
+            result = result.replacingOccurrences(of: placeholder, with: span)
+        }
+        return result
+    }
+
+    private func renderDisplayMath(_ latex: String) -> String {
+        "<div class=\"math-display\" data-latex=\"\(escapeHTMLAttribute(latex))\">"
+            + "\(escapeHTML(latex))</div>"
+    }
+
+    private func escapeHTMLAttribute(_ value: String) -> String {
+        escapeHTML(value).replacingOccurrences(of: "\"", with: "&quot;")
     }
 
     private func mermaidConfigJSON(for theme: ThemePreset) -> String {
