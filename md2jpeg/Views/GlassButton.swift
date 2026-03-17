@@ -10,12 +10,13 @@ struct GlassButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: size * 0.4, weight: .medium))
-                .foregroundStyle(colors.iconPrimary)
-                .frame(width: size, height: size)
-                .glassEffect(.regular, in: .circle)
-                .contentShape(Circle())
+            OverlaySurface(shapeStyle: .circle) {
+                Image(systemName: icon)
+                    .font(.system(size: size * 0.4, weight: .medium))
+                    .foregroundStyle(colors.iconPrimary)
+                    .frame(width: size, height: size)
+                    .contentShape(Circle())
+            }
         }
         .disabled(disabled)
         .opacity(disabled ? 0.4 : 1)

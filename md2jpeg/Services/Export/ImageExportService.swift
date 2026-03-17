@@ -85,7 +85,7 @@ final class ImageExportService {
             hostView = host
         }
 
-        webView.loadHTMLString(html, baseURL: nil)
+        webView.loadHTMLString(html, baseURL: PreviewAssetLocator.htmlBaseURL)
         return (webView, hostView)
     }
 

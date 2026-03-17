@@ -53,7 +53,9 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
         webView.scrollView.delegate = context.coordinator
         webView.scrollView.isScrollEnabled = true
         webView.scrollView.keyboardDismissMode = .onDrag
-        onWebViewCreated(webView)
+        DispatchQueue.main.async {
+            onWebViewCreated(webView)
+        }
         context.coordinator.loadIfNeeded(html: html, into: webView)
         return webView
     }
@@ -90,7 +92,7 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
                 previewWebView.pendingRestoreOffsetY = webView.scrollView.contentOffset.y
             }
             Self.logger.debug("Loading preview HTML. fingerprint=\(fingerprint, privacy: .public)")
-            webView.loadHTMLString(html, baseURL: nil)
+            webView.loadHTMLString(html, baseURL: PreviewAssetLocator.htmlBaseURL)
         }
 
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {

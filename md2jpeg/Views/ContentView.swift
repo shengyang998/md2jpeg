@@ -19,6 +19,7 @@ struct ContentView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
 
+    @State private var isExportSharePresented = false
     @State private var webViewRef: WKWebView?
     @State private var renderedHTML: String = ""
     @State private var editorScrollOffset: CGFloat = 0
@@ -31,28 +32,41 @@ struct ContentView: View {
     private let exportService = ImageExportService()
     private let photoLibrarySaver = PhotoLibrarySaver()
 
-    private var effectiveOverlayColors: OverlayColors {
+    private var controlOverlayColors: OverlayColors {
         if appState.isRawMode {
-            return OverlayColors(isDarkBackground: colorScheme == .dark)
+            return .controlChrome(isDarkBackground: colorScheme == .dark)
         } else {
-            return OverlayColors(isDarkBackground: appState.selectedTheme.isDarkAppearance)
+            return .controlChrome(isDarkBackground: appState.selectedTheme.isDarkAppearance)
         }
+    }
+
+    private var statusOverlayColors: OverlayColors {
+        .statusSurface(for: colorScheme)
     }
 
     var body: some View {
         ZStack {
             contentLayer
             controlsOverlay
-                .environment(\.overlayColors, effectiveOverlayColors)
-            if appState.isExporting {
+                .environment(\.overlayColors, controlOverlayColors)
+            StatusOverlayHost(
+                toastMessage: $appState.exportInfoMessage,
+                isBlocking: appState.isExporting,
+                bottomInset: bottomBarHeight
+            ) {
                 ExportProgressOverlay(progress: appState.exportProgress)
-                    .transition(.opacity)
             }
+            .environment(\.overlayColors, statusOverlayColors)
         }
         .alert("Export Error", isPresented: .constant(appState.exportErrorMessage != nil)) {
             Button("OK") { appState.exportErrorMessage = nil }
         } message: {
             Text(appState.exportErrorMessage ?? "")
+        }
+        .sheet(isPresented: $isExportSharePresented, onDismiss: clearExportShareState) {
+            if let exportedFileURL = appState.exportedFileURL {
+                ExportShareSheet(fileURL: exportedFileURL, onComplete: handleExportShareCompletion)
+            }
         }
         .onAppear {
             refreshRenderedHTML()
@@ -76,6 +90,7 @@ struct ContentView: View {
                 webViewRef: $webViewRef,
                 scrollOffset: $previewScrollOffset
             )
+            .environment(\.overlayColors, statusOverlayColors)
             .opacity(appState.isRawMode ? 0 : 1)
             .blur(radius: appState.isRawMode ? 12 : 0)
 
@@ -91,41 +106,19 @@ struct ContentView: View {
     // MARK: - Controls Overlay
 
     private var controlsOverlay: some View {
-        let colors = effectiveOverlayColors
-
         return VStack {
-            GlassEffectContainer {
-                HStack {
-                    Text("Markdown-Image")
-                        .font(.caption.weight(.semibold))
-                        .tracking(2)
-                        .foregroundStyle(colors.labelSecondary)
-                        .opacity(showTitle ? 1 : 0)
-                        .animation(.easeInOut(duration: 0.2), value: showTitle)
-
-                    Spacer()
-
-                    GlassButton(icon: "doc.on.clipboard") {
-                        if let text = UIPasteboard.general.string {
-                            appState.markdownText = text
-                        }
+            TopControlBar(
+                showTitle: showTitle,
+                onPaste: {
+                    if let text = UIPasteboard.general.string {
+                        appState.markdownText = text
                     }
-
-                    Menu {
-                        Button("Delete All Content", role: .destructive) {
-                            appState.markdownText = ""
-                        }
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 44 * 0.4, weight: .medium))
-                            .foregroundStyle(colors.iconPrimary)
-                            .frame(width: 44, height: 44)
-                            .glassEffect(.regular, in: .circle)
-                    }
-                    .disabled(appState.markdownText.isEmpty)
-                    .opacity(appState.markdownText.isEmpty ? 0.4 : 1)
-                }
-            }
+                },
+                onDeleteAll: {
+                    appState.markdownText = ""
+                },
+                isDeleteDisabled: appState.markdownText.isEmpty
+            )
             .padding(.horizontal, 20)
             .padding(.top, 8)
             .background(
@@ -135,20 +128,6 @@ struct ContentView: View {
             )
 
             Spacer()
-
-            if let exportInfoMessage = appState.exportInfoMessage, !appState.isExporting {
-                Text(exportInfoMessage)
-                    .font(.footnote)
-                    .foregroundStyle(colors.labelSecondary)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .glassEffect(.regular, in: .capsule)
-                    .onTapGesture {
-                        appState.exportInfoMessage = nil
-                    }
-                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    .padding(.bottom, 4)
-            }
 
             FloatingControlBar(
                 isRawMode: $appState.isRawMode,
@@ -180,6 +159,7 @@ struct ContentView: View {
         appState.exportProgress = 0
         appState.exportErrorMessage = nil
         appState.exportInfoMessage = nil
+        appState.exportedFileURL = nil
 
         defer {
             appState.isExporting = false
@@ -194,6 +174,10 @@ struct ContentView: View {
                     appState.exportProgress = min(max(progress, 0), 1)
                 }
             )
+
+#if targetEnvironment(macCatalyst)
+            presentExportShare(for: result, requestedFormat: format)
+#else
             try await photoLibrarySaver.saveImage(at: result.fileURL)
             appState.exportProgress = 1
 
@@ -202,6 +186,7 @@ struct ContentView: View {
             } else {
                 appState.exportInfoMessage = "Saved to Photos."
             }
+#endif
         } catch {
             appState.exportErrorMessage = (error as? LocalizedError)?.errorDescription ?? error.localizedDescription
         }
@@ -213,6 +198,35 @@ struct ContentView: View {
         let offset = appState.isRawMode ? editorScrollOffset : previewScrollOffset
         let threshold = topBarHeight > 0 ? topBarHeight * 0.4 : 20
         return offset < threshold
+    }
+
+    private func presentExportShare(
+        for result: (fileURL: URL, formatUsed: ExportFormat),
+        requestedFormat: ExportFormat
+    ) {
+        appState.exportedFileURL = result.fileURL
+        appState.exportProgress = 1
+        if result.formatUsed != requestedFormat {
+            appState.exportInfoMessage = "Export ready to share as JPEG because HEIC is unavailable on this runtime."
+        } else {
+            appState.exportInfoMessage = "Export ready to share."
+        }
+        isExportSharePresented = true
+    }
+
+    private func handleExportShareCompletion(completed: Bool, error: Error?) {
+        if let error {
+            appState.exportErrorMessage = error.localizedDescription
+            return
+        }
+
+        if completed {
+            appState.exportInfoMessage = "Share completed."
+        }
+    }
+
+    private func clearExportShareState() {
+        appState.exportedFileURL = nil
     }
 
     private func refreshRenderedHTML() {

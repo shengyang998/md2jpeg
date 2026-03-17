@@ -175,12 +175,15 @@ final class MarkdownHTMLRendererTests: XCTestCase {
         XCTAssertTrue(html.contains("\"lineColor\":\"#6366f1\""))
     }
 
-    func testRendererPinsMermaidRuntimeVersion() {
+    func testRendererUsesBundledWebAssets() {
         let renderer = MarkdownHTMLRenderer()
         let html = renderer.render(markdown: "```mermaid\ngraph TD\nA-->B\n```", theme: .classic)
 
-        XCTAssertTrue(html.contains("mermaid@10.9.5"))
-        XCTAssertFalse(html.contains("mermaid@10/dist"))
+        XCTAssertTrue(html.contains("Vendor/mermaid/mermaid.min.js"))
+        XCTAssertTrue(html.contains("Vendor/katex/katex.min.js"))
+        XCTAssertTrue(html.contains("Vendor/katex/katex.min.css"))
+        XCTAssertFalse(html.contains("cdn.jsdelivr.net"))
+        XCTAssertFalse(html.contains("https://"))
     }
 
     func testRendererInjectsMermaidNormalizationAndDiagnosticsHooks() {

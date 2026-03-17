@@ -26,11 +26,12 @@ struct FloatingControlBar: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "paintpalette")
-                        .font(.system(size: 44 * 0.4, weight: .medium))
-                        .foregroundStyle(colors.iconPrimary)
-                        .frame(width: 44, height: 44)
-                        .glassEffect(.regular, in: .circle)
+                    OverlaySurface(shapeStyle: .circle) {
+                        Image(systemName: "paintpalette")
+                            .font(.system(size: 44 * 0.4, weight: .medium))
+                            .foregroundStyle(colors.iconPrimary)
+                            .frame(width: 44, height: 44)
+                    }
                 }
 
                 Spacer()
@@ -46,11 +47,12 @@ struct FloatingControlBar: View {
                         }
                     }
                 } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 44 * 0.4, weight: .medium))
-                        .foregroundStyle(colors.iconPrimary)
-                        .frame(width: 44, height: 44)
-                        .glassEffect(.regular, in: .circle)
+                    OverlaySurface(shapeStyle: .circle) {
+                        Image(systemName: "square.and.arrow.up")
+                            .font(.system(size: 44 * 0.4, weight: .medium))
+                            .foregroundStyle(colors.iconPrimary)
+                            .frame(width: 44, height: 44)
+                    }
                 }
             }
         }

@@ -1,10 +1,10 @@
 import Foundation
 
 enum HTMLTemplateBuilder {
-    // Keep Mermaid runtime deterministic. Upgrade by validating fixtures against
-    // the candidate version, then updating this constant in one place.
-    private static let pinnedMermaidVersion = "10.9.5"
-    private static let pinnedKaTeXVersion = "0.16.11"
+    // Keep bundled runtimes deterministic. Upgrade by validating fixtures
+    // against the candidate version, then updating bundled assets in one place.
+    private static let bundledMermaidVersion = "10.9.5"
+    private static let bundledKaTeXVersion = "0.16.11"
 
     static func build(bodyHTML: String, css: String, mermaidConfigJSON: String) -> String {
         """
@@ -13,9 +13,11 @@ enum HTMLTemplateBuilder {
         <head>
           <meta charset="utf-8" />
           <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@\(pinnedKaTeXVersion)/dist/katex.min.css" />
-          <script src="https://cdn.jsdelivr.net/npm/katex@\(pinnedKaTeXVersion)/dist/katex.min.js" onerror="window.__md2jpegKaTeXScriptFailed = true"></script>
-          <script src="https://cdn.jsdelivr.net/npm/mermaid@\(pinnedMermaidVersion)/dist/mermaid.min.js" onerror="window.__md2jpegMermaidScriptFailed = true"></script>
+          <meta name="md2jpeg-bundled-mermaid-version" content="\(bundledMermaidVersion)" />
+          <meta name="md2jpeg-bundled-katex-version" content="\(bundledKaTeXVersion)" />
+          <link rel="stylesheet" href="\(PreviewAssetLocator.katexStylesheetPath)" />
+          <script src="\(PreviewAssetLocator.katexScriptPath)" onerror="window.__md2jpegKaTeXScriptFailed = true"></script>
+          <script src="\(PreviewAssetLocator.mermaidScriptPath)" onerror="window.__md2jpegMermaidScriptFailed = true"></script>
           <style>
           \(css)
           </style>

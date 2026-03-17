@@ -9,7 +9,7 @@ struct MarkdownPreviewView: View {
     @Binding var scrollOffset: CGFloat
 
     var body: some View {
-        ZStack(alignment: .top) {
+        ZStack {
             MarkdownPreviewWebView(
                 html: html,
                 onLoadingStateChange: { isLoading = $0 },
@@ -19,18 +19,15 @@ struct MarkdownPreviewView: View {
             )
 
             if isLoading {
-                ProgressView("Rendering preview...")
-                    .padding(8)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(.top, 12)
+                StatusBanner(message: "Rendering", tone: .loading)
+                    .allowsHitTesting(false)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
             }
         }
         .overlay(alignment: .bottomLeading) {
             if let errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .padding(8)
+                StatusBanner(message: errorMessage, tone: .error, lineLimit: 3)
+                    .padding(12)
             }
         }
     }
