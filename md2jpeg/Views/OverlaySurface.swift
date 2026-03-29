@@ -36,30 +36,15 @@ struct OverlaySurface<Content: View>: View {
         switch shapeStyle {
         case .capsule:
             content()
-                .background(.ultraThinMaterial, in: Capsule())
-                .overlay {
-                    Capsule()
-                        .strokeBorder(borderColor.opacity(borderOpacity), lineWidth: borderLineWidth)
-                }
                 .glassEffect(.regular, in: Capsule())
                 .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
         case .circle:
             content()
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay {
-                    Circle()
-                        .strokeBorder(borderColor.opacity(borderOpacity), lineWidth: borderLineWidth)
-                }
                 .glassEffect(.regular, in: Circle())
                 .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
         case let .roundedCard(cornerRadius):
             let shape = RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
             content()
-                .background(.ultraThinMaterial, in: shape)
-                .overlay {
-                    shape
-                        .strokeBorder(borderColor.opacity(borderOpacity), lineWidth: borderLineWidth)
-                }
                 .glassEffect(.regular, in: shape)
                 .shadow(color: .black.opacity(shadowOpacity), radius: shadowRadius, y: shadowY)
         }
