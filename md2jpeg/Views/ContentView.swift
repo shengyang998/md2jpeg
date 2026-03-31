@@ -123,8 +123,8 @@ struct ContentView: View {
                 showTitle: showTitle,
                 onPaste: {
                     if let text = UIPasteboard.general.string {
-                        saveToHistory()
                         appState.markdownText = text
+                        saveToHistory()
                     }
                 },
                 onHistory: {

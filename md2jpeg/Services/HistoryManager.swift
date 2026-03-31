@@ -11,6 +11,15 @@ final class HistoryManager {
 
     func save(markdownText: String, themeName: String) {
         guard !markdownText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+
+        // Deduplicate: skip if the most recent entry has identical content
+        var descriptor = FetchDescriptor<HistoryEntry>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
+        descriptor.fetchLimit = 1
+        if let latest = try? modelContext.fetch(descriptor).first,
+           latest.markdownText == markdownText {
+            return
+        }
+
         let title = Self.extractTitle(from: markdownText)
         let entry = HistoryEntry(title: title, markdownText: markdownText, themeName: themeName)
         modelContext.insert(entry)
