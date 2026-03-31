@@ -2,13 +2,6 @@ import SwiftUI
 import SwiftData
 import WebKit
 
-private struct TopBarHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
 private struct BottomBarHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
@@ -27,7 +20,6 @@ struct ContentView: View {
     @State private var renderedHTML: String = ""
     @State private var editorScrollOffset: CGFloat = 0
     @State private var previewScrollOffset: CGFloat = 0
-    @State private var topBarHeight: CGFloat = 0
     @State private var bottomBarHeight: CGFloat = 0
     private let formats = ExportFormat.allCases
 
@@ -48,18 +40,81 @@ struct ContentView: View {
     }
 
     var body: some View {
-        ZStack {
-            contentLayer
-            controlsOverlay
-                .environment(\.overlayColors, controlOverlayColors)
-            StatusOverlayHost(
-                toastMessage: $appState.exportInfoMessage,
-                isBlocking: appState.isExporting,
-                bottomInset: bottomBarHeight
-            ) {
-                ExportProgressOverlay(progress: appState.exportProgress)
+        NavigationStack {
+            ZStack {
+                MarkdownPreviewView(
+                    html: renderedHTML,
+                    isLoading: $appState.isPreviewLoading,
+                    errorMessage: $appState.previewErrorMessage,
+                    webViewRef: $webViewRef,
+                    scrollOffset: $previewScrollOffset
+                )
+                .environment(\.overlayColors, statusOverlayColors)
+                .opacity(appState.isRawMode ? 0 : 1)
+                .blur(radius: appState.isRawMode ? 12 : 0)
+
+                MarkdownEditorView(text: $appState.markdownText, scrollOffset: $editorScrollOffset, bottomBarHeight: bottomBarHeight)
+                    .opacity(appState.isRawMode ? 1 : 0)
+                    .blur(radius: appState.isRawMode ? 0 : 12)
+                    .allowsHitTesting(appState.isRawMode)
             }
-            .environment(\.overlayColors, statusOverlayColors)
+            .animation(.spring(response: 0.4, dampingFraction: 0.85), value: appState.isRawMode)
+            .overlay(alignment: .bottom) {
+                FloatingControlBar(
+                    isRawMode: $appState.isRawMode,
+                    selectedTheme: $appState.selectedTheme,
+                    onExport: { format in
+                        Task { await handleExport(format: format) }
+                    }
+                )
+                .environment(\.overlayColors, controlOverlayColors)
+                .padding(.bottom, 8)
+                .background(
+                    GeometryReader { geo in
+                        Color.clear.preference(key: BottomBarHeightKey.self, value: geo.size.height)
+                    }
+                )
+            }
+            .onPreferenceChange(BottomBarHeightKey.self) { bottomBarHeight = $0 }
+            .overlay {
+                StatusOverlayHost(
+                    toastMessage: $appState.exportInfoMessage,
+                    isBlocking: appState.isExporting,
+                    bottomInset: bottomBarHeight
+                ) {
+                    ExportProgressOverlay(progress: appState.exportProgress)
+                }
+                .environment(\.overlayColors, statusOverlayColors)
+            }
+            .navigationTitle("Markdown-Image")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItemGroup(placement: .topBarTrailing) {
+                    Button {
+                        if let text = UIPasteboard.general.string {
+                            appState.markdownText = text
+                            saveToHistory()
+                        }
+                    } label: {
+                        Image(systemName: "doc.on.clipboard")
+                    }
+
+                    Button {
+                        isHistoryPresented = true
+                    } label: {
+                        Image(systemName: "clock.arrow.circlepath")
+                    }
+
+                    Menu {
+                        Button("Delete All Content", role: .destructive) {
+                            appState.markdownText = ""
+                        }
+                    } label: {
+                        Image(systemName: "trash")
+                    }
+                    .disabled(appState.markdownText.isEmpty)
+                }
+            }
         }
         .alert("Export Error", isPresented: .constant(appState.exportErrorMessage != nil)) {
             Button("OK") { appState.exportErrorMessage = nil }
@@ -89,103 +144,6 @@ struct ContentView: View {
         .onChange(of: appState.selectedTheme) { _ in
             refreshRenderedHTML()
         }
-    }
-
-    // MARK: - Content Layer
-
-    private var contentLayer: some View {
-        ZStack {
-            MarkdownPreviewView(
-                html: renderedHTML,
-                isLoading: $appState.isPreviewLoading,
-                errorMessage: $appState.previewErrorMessage,
-                webViewRef: $webViewRef,
-                scrollOffset: $previewScrollOffset
-            )
-            .environment(\.overlayColors, statusOverlayColors)
-            .opacity(appState.isRawMode ? 0 : 1)
-            .blur(radius: appState.isRawMode ? 12 : 0)
-
-            MarkdownEditorView(text: $appState.markdownText, scrollOffset: $editorScrollOffset, topBarHeight: topBarHeight, bottomBarHeight: bottomBarHeight)
-                .opacity(appState.isRawMode ? 1 : 0)
-                .blur(radius: appState.isRawMode ? 0 : 12)
-                .allowsHitTesting(appState.isRawMode)
-
-            // Gradient blur at top edge — matches iOS nav bar blur height
-            GeometryReader { geo in
-                let safeTop = geo.safeAreaInsets.top
-                let blurHeight = safeTop + topBarHeight + 16
-                VStack {
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
-                        .mask(
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .black.opacity(0.9), location: 0),
-                                    .init(color: .black.opacity(0.5), location: 0.6),
-                                    .init(color: .clear, location: 1)
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        )
-                        .frame(height: blurHeight > 12 ? blurHeight : 110)
-                        .allowsHitTesting(false)
-                    Spacer()
-                }
-                .ignoresSafeArea()
-            }
-        }
-        .ignoresSafeArea()
-        .animation(.spring(response: 0.4, dampingFraction: 0.85), value: appState.isRawMode)
-    }
-
-    // MARK: - Controls Overlay
-
-    private var controlsOverlay: some View {
-        return VStack {
-            TopControlBar(
-                showTitle: showTitle,
-                onPaste: {
-                    if let text = UIPasteboard.general.string {
-                        appState.markdownText = text
-                        saveToHistory()
-                    }
-                },
-                onHistory: {
-                    isHistoryPresented = true
-                },
-                onDeleteAll: {
-                    appState.markdownText = ""
-                },
-                isDeleteDisabled: appState.markdownText.isEmpty
-            )
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .background(
-                GeometryReader { geo in
-                    Color.clear.preference(key: TopBarHeightKey.self, value: geo.size.height)
-                }
-            )
-
-            Spacer()
-
-            FloatingControlBar(
-                isRawMode: $appState.isRawMode,
-                selectedTheme: $appState.selectedTheme,
-                onExport: { format in
-                    Task { await handleExport(format: format) }
-                }
-            )
-            .padding(.bottom, 8)
-            .background(
-                GeometryReader { geo in
-                    Color.clear.preference(key: BottomBarHeightKey.self, value: geo.size.height)
-                }
-            )
-        }
-        .onPreferenceChange(TopBarHeightKey.self) { topBarHeight = $0 }
-        .onPreferenceChange(BottomBarHeightKey.self) { bottomBarHeight = $0 }
     }
 
     // MARK: - Export
@@ -236,12 +194,6 @@ struct ContentView: View {
     }
 
     // MARK: - Helpers
-
-    private var showTitle: Bool {
-        let offset = appState.isRawMode ? editorScrollOffset : previewScrollOffset
-        let threshold = topBarHeight > 0 ? topBarHeight * 0.4 : 20
-        return offset < threshold
-    }
 
     private func presentExportShare(
         for result: (fileURL: URL, formatUsed: ExportFormat),
