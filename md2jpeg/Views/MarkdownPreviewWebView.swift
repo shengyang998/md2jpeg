@@ -53,6 +53,7 @@ struct MarkdownPreviewWebView: UIViewRepresentable {
         webView.scrollView.delegate = context.coordinator
         webView.scrollView.isScrollEnabled = true
         webView.scrollView.keyboardDismissMode = .onDrag
+        webView.scrollView.topEdgeEffect.style = .soft
         DispatchQueue.main.async {
             onWebViewCreated(webView)
         }
