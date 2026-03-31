@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 import WebKit
 
 private struct TopBarHeightKey: PreferenceKey {
@@ -18,8 +19,10 @@ private struct BottomBarHeightKey: PreferenceKey {
 struct ContentView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.modelContext) private var modelContext
 
     @State private var isExportSharePresented = false
+    @State private var isHistoryPresented = false
     @State private var webViewRef: WKWebView?
     @State private var renderedHTML: String = ""
     @State private var editorScrollOffset: CGFloat = 0
@@ -62,6 +65,15 @@ struct ContentView: View {
             Button("OK") { appState.exportErrorMessage = nil }
         } message: {
             Text(appState.exportErrorMessage ?? "")
+        }
+        .sheet(isPresented: $isHistoryPresented) {
+            HistoryListView { entry in
+                appState.markdownText = entry.markdownText
+                if let theme = ThemePreset(rawValue: entry.themeName) {
+                    appState.selectedTheme = theme
+                }
+            }
+            .environment(\.overlayColors, controlOverlayColors)
         }
         .sheet(isPresented: $isExportSharePresented, onDismiss: clearExportShareState) {
             if let exportedFileURL = appState.exportedFileURL {
@@ -111,8 +123,12 @@ struct ContentView: View {
                 showTitle: showTitle,
                 onPaste: {
                     if let text = UIPasteboard.general.string {
+                        saveToHistory()
                         appState.markdownText = text
                     }
+                },
+                onHistory: {
+                    isHistoryPresented = true
                 },
                 onDeleteAll: {
                     appState.markdownText = ""
@@ -176,10 +192,12 @@ struct ContentView: View {
             )
 
 #if targetEnvironment(macCatalyst)
+            saveToHistory()
             presentExportShare(for: result, requestedFormat: format)
 #else
             try await photoLibrarySaver.saveImage(at: result.fileURL)
             appState.exportProgress = 1
+            saveToHistory()
 
             if result.formatUsed != format {
                 appState.exportInfoMessage = "Saved to Photos as JPEG because HEIC is unavailable on this runtime."
@@ -227,6 +245,11 @@ struct ContentView: View {
 
     private func clearExportShareState() {
         appState.exportedFileURL = nil
+    }
+
+    private func saveToHistory() {
+        let manager = HistoryManager(modelContext: modelContext)
+        manager.save(markdownText: appState.markdownText, themeName: appState.selectedTheme.rawValue)
     }
 
     private func refreshRenderedHTML() {

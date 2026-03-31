@@ -3,6 +3,7 @@ import SwiftUI
 struct TopControlBar: View {
     let showTitle: Bool
     let onPaste: () -> Void
+    let onHistory: () -> Void
     let onDeleteAll: () -> Void
     let isDeleteDisabled: Bool
 
@@ -21,6 +22,8 @@ struct TopControlBar: View {
                 Spacer()
 
                 GlassButton(icon: "doc.on.clipboard", action: onPaste)
+
+                GlassButton(icon: "clock.arrow.circlepath", action: onHistory)
 
                 Menu {
                     Button("Delete All Content", role: .destructive) {

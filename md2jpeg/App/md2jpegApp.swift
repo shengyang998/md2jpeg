@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 @main
 struct md2jpegApp: App {
@@ -10,5 +11,6 @@ struct md2jpegApp: App {
                 .environmentObject(appState)
                 .tint(Color("AccentColor"))
         }
+        .modelContainer(for: HistoryEntry.self)
     }
 }
