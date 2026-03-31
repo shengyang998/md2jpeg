@@ -58,6 +58,7 @@ struct ContentView: View {
                     .blur(radius: appState.isRawMode ? 0 : 12)
                     .allowsHitTesting(appState.isRawMode)
             }
+            .ignoresSafeArea()
             .animation(.spring(response: 0.4, dampingFraction: 0.85), value: appState.isRawMode)
             .overlay(alignment: .bottom) {
                 FloatingControlBar(
