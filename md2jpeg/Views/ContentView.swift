@@ -110,6 +110,26 @@ struct ContentView: View {
                 .opacity(appState.isRawMode ? 1 : 0)
                 .blur(radius: appState.isRawMode ? 0 : 12)
                 .allowsHitTesting(appState.isRawMode)
+
+            // Gradient blur at top edge — material fades to transparent
+            VStack {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .mask(
+                        LinearGradient(
+                            stops: [
+                                .init(color: .black, location: 0),
+                                .init(color: .black, location: 0.5),
+                                .init(color: .clear, location: 1)
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+                    .frame(height: topBarHeight > 0 ? topBarHeight + 40 : 100)
+                    .allowsHitTesting(false)
+                Spacer()
+            }
         }
         .ignoresSafeArea()
         .animation(.spring(response: 0.4, dampingFraction: 0.85), value: appState.isRawMode)

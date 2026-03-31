@@ -32,6 +32,7 @@ private struct InsetTextView: UIViewRepresentable {
         view.textContainer.lineFragmentPadding = 0
         view.keyboardDismissMode = .interactive
         view.topEdgeEffect.style = .soft
+        view.bottomEdgeEffect.style = .soft
         applyInsets(to: view)
         return view
     }
