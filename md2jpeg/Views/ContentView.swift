@@ -118,15 +118,15 @@ struct ContentView: View {
                     .mask(
                         LinearGradient(
                             stops: [
-                                .init(color: .black, location: 0),
-                                .init(color: .black, location: 0.5),
+                                .init(color: .black.opacity(0.8), location: 0),
+                                .init(color: .black.opacity(0.3), location: 0.4),
                                 .init(color: .clear, location: 1)
                             ],
                             startPoint: .top,
                             endPoint: .bottom
                         )
                     )
-                    .frame(height: topBarHeight > 0 ? topBarHeight + 40 : 100)
+                    .frame(height: topBarHeight > 0 ? topBarHeight + 16 : 70)
                     .allowsHitTesting(false)
                 Spacer()
             }
