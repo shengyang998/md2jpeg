@@ -111,24 +111,29 @@ struct ContentView: View {
                 .blur(radius: appState.isRawMode ? 0 : 12)
                 .allowsHitTesting(appState.isRawMode)
 
-            // Gradient blur at top edge — material fades to transparent
-            VStack {
-                Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .mask(
-                        LinearGradient(
-                            stops: [
-                                .init(color: .black.opacity(0.8), location: 0),
-                                .init(color: .black.opacity(0.3), location: 0.4),
-                                .init(color: .clear, location: 1)
-                            ],
-                            startPoint: .top,
-                            endPoint: .bottom
+            // Gradient blur at top edge — matches iOS nav bar blur height
+            GeometryReader { geo in
+                let safeTop = geo.safeAreaInsets.top
+                let blurHeight = safeTop + topBarHeight + 12
+                VStack {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .mask(
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .black.opacity(0.8), location: 0),
+                                    .init(color: .black.opacity(0.3), location: 0.7),
+                                    .init(color: .clear, location: 1)
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
                         )
-                    )
-                    .frame(height: topBarHeight > 0 ? topBarHeight + 16 : 70)
-                    .allowsHitTesting(false)
-                Spacer()
+                        .frame(height: blurHeight > 12 ? blurHeight : 110)
+                        .allowsHitTesting(false)
+                    Spacer()
+                }
+                .ignoresSafeArea()
             }
         }
         .ignoresSafeArea()
