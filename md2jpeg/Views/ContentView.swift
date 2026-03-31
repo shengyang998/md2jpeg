@@ -114,15 +114,15 @@ struct ContentView: View {
             // Gradient blur at top edge — matches iOS nav bar blur height
             GeometryReader { geo in
                 let safeTop = geo.safeAreaInsets.top
-                let blurHeight = safeTop + topBarHeight + 12
+                let blurHeight = safeTop + topBarHeight + 16
                 VStack {
                     Rectangle()
                         .fill(.ultraThinMaterial)
                         .mask(
                             LinearGradient(
                                 stops: [
-                                    .init(color: .black.opacity(0.8), location: 0),
-                                    .init(color: .black.opacity(0.3), location: 0.7),
+                                    .init(color: .black.opacity(0.9), location: 0),
+                                    .init(color: .black.opacity(0.5), location: 0.6),
                                     .init(color: .clear, location: 1)
                                 ],
                                 startPoint: .top,
