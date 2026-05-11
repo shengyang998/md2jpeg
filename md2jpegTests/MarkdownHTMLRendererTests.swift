@@ -45,6 +45,80 @@ final class MarkdownHTMLRendererTests: XCTestCase {
         XCTAssertTrue(html.contains("<h6 data-md-heading-level=\"7\">Deep Title</h6>"))
     }
 
+    // MARK: - Blockquotes
+
+    func testRendererConvertsAngleBracketLineIntoBlockquote() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "> Quoted text", theme: .classic)
+        XCTAssertTrue(html.contains("<blockquote>"))
+        XCTAssertTrue(html.contains("<p>Quoted text</p>"))
+        XCTAssertTrue(html.contains("</blockquote>"))
+    }
+
+    func testRendererMergesConsecutiveBlockquoteLinesIntoOneBlock() {
+        let renderer = MarkdownHTMLRenderer()
+        let markdown = """
+        > Line one
+        > Line two
+        """
+        let html = renderer.render(markdown: markdown, theme: .classic)
+
+        let openCount = html.components(separatedBy: "<blockquote>").count - 1
+        let closeCount = html.components(separatedBy: "</blockquote>").count - 1
+        XCTAssertEqual(openCount, 1)
+        XCTAssertEqual(closeCount, 1)
+        XCTAssertTrue(html.contains("Line one Line two"))
+    }
+
+    func testRendererSplitsBlockquoteParagraphsOnEmptyMarkerLine() {
+        let renderer = MarkdownHTMLRenderer()
+        let markdown = """
+        > First paragraph
+        >
+        > Second paragraph
+        """
+        let html = renderer.render(markdown: markdown, theme: .classic)
+
+        XCTAssertTrue(html.contains("<blockquote><p>First paragraph</p><p>Second paragraph</p></blockquote>"))
+    }
+
+    func testRendererSupportsBlockquoteWithoutSpaceAfterMarker() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: ">No space", theme: .classic)
+        XCTAssertTrue(html.contains("<blockquote>"))
+        XCTAssertTrue(html.contains("<p>No space</p>"))
+    }
+
+    func testRendererTerminatesBlockquoteOnBlankLine() {
+        let renderer = MarkdownHTMLRenderer()
+        let markdown = """
+        > Quoted line
+
+        Normal paragraph
+        """
+        let html = renderer.render(markdown: markdown, theme: .classic)
+
+        XCTAssertTrue(html.contains("<blockquote><p>Quoted line</p></blockquote>"))
+        XCTAssertTrue(html.contains("<p>Normal paragraph</p>"))
+    }
+
+    func testRendererProcessesInlineFormattingInsideBlockquote() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "> A **bold** quote with *italic*", theme: .classic)
+        XCTAssertTrue(html.contains("<blockquote>"))
+        XCTAssertTrue(html.contains("<strong>bold</strong>"))
+        XCTAssertTrue(html.contains("<em>italic</em>"))
+    }
+
+    func testRendererDoesNotTreatNonLeadingAngleBracketAsBlockquote() {
+        let renderer = MarkdownHTMLRenderer()
+        let html = renderer.render(markdown: "value: 1 > 0 is true", theme: .classic)
+        XCTAssertFalse(html.contains("<blockquote>"))
+        XCTAssertTrue(html.contains("1 &gt; 0"))
+    }
+
+    // MARK: - Lists
+
     func testRendererSupportsAsteriskAndDashBulletPoints() {
         let renderer = MarkdownHTMLRenderer()
         let markdown = """

@@ -138,6 +138,20 @@ struct MarkdownHTMLRenderer {
                 inList = false
             }
 
+            if let firstQuoted = parseBlockquoteLine(line) {
+                var quotedLines: [String] = [firstQuoted]
+                var lookahead = index + 1
+                while lookahead < lines.count {
+                    let nextLine = lines[lookahead].trimmingCharacters(in: .whitespaces)
+                    guard let nextQuoted = parseBlockquoteLine(nextLine) else { break }
+                    quotedLines.append(nextQuoted)
+                    lookahead += 1
+                }
+                htmlParts.append(renderBlockquote(lines: quotedLines))
+                index = lookahead
+                continue
+            }
+
             if let table = parseTable(from: lines, startIndex: index) {
                 htmlParts.append(table.html)
                 index = table.nextIndex
@@ -272,6 +286,36 @@ struct MarkdownHTMLRenderer {
             return String(line.dropFirst(2))
         }
         return nil
+    }
+
+    /// Strip the leading `>` (and one optional space) from a blockquote line.
+    /// Returns nil if the line is not a blockquote.
+    private func parseBlockquoteLine(_ line: String) -> String? {
+        guard line.hasPrefix(">") else { return nil }
+        let afterMarker = line.dropFirst()
+        if afterMarker.first == " " {
+            return String(afterMarker.dropFirst())
+        }
+        return String(afterMarker)
+    }
+
+    private func renderBlockquote(lines: [String]) -> String {
+        // Empty `>`-only lines split the blockquote into separate paragraphs.
+        var paragraphs: [[String]] = [[]]
+        for line in lines {
+            if line.isEmpty {
+                if !(paragraphs.last?.isEmpty ?? true) {
+                    paragraphs.append([])
+                }
+            } else {
+                paragraphs[paragraphs.count - 1].append(line)
+            }
+        }
+        let renderedParagraphs = paragraphs
+            .filter { !$0.isEmpty }
+            .map { "<p>\(processInlineContent($0.joined(separator: " ")))</p>" }
+            .joined()
+        return "<blockquote>\(renderedParagraphs)</blockquote>"
     }
 
     private func parseHeading(_ line: String) -> (level: Int, text: String)? {

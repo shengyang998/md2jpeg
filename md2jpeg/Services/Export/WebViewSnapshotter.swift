@@ -24,6 +24,11 @@ struct WebViewSnapshotter {
             throw ExportError.contentExceedsLimit
         }
 
+        // Everything below is in *points*. The Retina conversion to pixels happens once at
+        // composition time via `UIGraphicsImageRendererFormat.scale = limits.pixelScale`.
+        // `scale` only kicks in defensively when the WebView's content overflows horizontally
+        // beyond `limits.targetWidth` — in the typical case `contentSize.width ≈ targetWidth`,
+        // so `scale ≈ 1.0`.
         let scale = limits.targetWidth / contentSize.width
         let targetSize = CGSize(width: limits.targetWidth, height: contentSize.height * scale)
         let tiles = makeContentTileRects(
@@ -67,7 +72,10 @@ struct WebViewSnapshotter {
             throw ExportError.incompleteComposedImage
         }
 
-        let image = UIGraphicsImageRenderer(size: targetSize).image { _ in
+        let rendererFormat = UIGraphicsImageRendererFormat()
+        rendererFormat.scale = limits.pixelScale
+        rendererFormat.opaque = false
+        let image = UIGraphicsImageRenderer(size: targetSize, format: rendererFormat).image { _ in
             for captured in capturedTiles {
                 autoreleasepool {
                     captured.image.draw(in: captured.rect)
@@ -185,16 +193,15 @@ struct WebViewSnapshotter {
                 """
                 (function() {
                   var body = document.body;
-                  var doc = document.documentElement;
-                  if (!body || !doc) { return null; }
-                  var width = Math.max(
-                    body.scrollWidth, body.offsetWidth,
-                    doc.clientWidth, doc.scrollWidth, doc.offsetWidth
-                  );
-                  var height = Math.max(
-                    body.scrollHeight, body.offsetHeight,
-                    doc.clientHeight, doc.scrollHeight, doc.offsetHeight
-                  );
+                  if (!body) { return null; }
+                  // Use only body-derived metrics. `documentElement` returns at least the
+                  // viewport (WebView frame) size, which would pad short documents with
+                  // blank space — for an accurate WYSIWYG export we want the body's real
+                  // content extent. `body.scrollHeight` / `offsetHeight` include padding
+                  // and reflect the actual content height (or content + overflow).
+                  var rect = body.getBoundingClientRect();
+                  var width = Math.max(body.scrollWidth, body.offsetWidth, Math.ceil(rect.width));
+                  var height = Math.max(body.scrollHeight, body.offsetHeight, Math.ceil(rect.height));
                   return { width: width, height: height };
                 })();
                 """,

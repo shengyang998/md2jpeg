@@ -28,6 +28,16 @@ pre {
   overflow-x: auto;
 }
 
+blockquote {
+  border-left: 4px solid #b48a59;
+  margin: 0;
+  padding: 4px 14px;
+  color: #5a4a36;
+  background: #f2e9d8;
+  border-radius: 0 6px 6px 0;
+  font-style: italic;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
